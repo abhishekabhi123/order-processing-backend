@@ -13,6 +13,7 @@ export const productRepository = {
 
     async findAll() {
         return prisma.product.findMany({
+            where: { isActive: true },
             include: {
                 category: true,
             },
@@ -23,8 +24,8 @@ export const productRepository = {
     },
 
     async findById(id: string) {
-        return prisma.product.findUnique({
-            where: { id },
+        return prisma.product.findFirst({
+            where: { id, isActive: true },
             include: {
                 category: true,
             },
@@ -36,4 +37,29 @@ export const productRepository = {
             where: { sku },
         });
     },
+
+    async update(
+        id: string,
+        data: Prisma.ProductUpdateInput
+    ) {
+        return prisma.product.update({
+            where: { id },
+            data,
+            include: {
+                category: true,
+            },
+        });
+    },
+
+    async deactivate(id: string) {
+        return prisma.product.update({
+            where: { id },
+            data: {
+                isActive: false,
+            },
+            include: {
+                category: true,
+            },
+        });
+    }
 };
