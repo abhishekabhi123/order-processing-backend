@@ -61,5 +61,11 @@ export const productRepository = {
                 category: true,
             },
         });
+    },
+
+    async delete(id: string) {
+        return prisma.product.delete({
+            where: { id },
+        });
     }
 };
