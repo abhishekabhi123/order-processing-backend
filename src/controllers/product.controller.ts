@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { productService } from "../services/product.service.js";
 import { HTTP_STATUS } from "../constants/httpCodes.js";
 import { sendSuccess } from "../utils/responses.js";
+import type { ProductQuery } from "../types/product.types.js";
 
 export const productController = {
     create: async (
@@ -28,7 +29,7 @@ export const productController = {
         next: NextFunction
     ) => {
         try {
-            const products = await productService.getAll();
+            const products = await productService.getAll(req.query as unknown as ProductQuery);
 
             return sendSuccess(
                 res,

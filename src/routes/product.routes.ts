@@ -4,7 +4,7 @@ import { authMiddleware } from "../middleware/auth.middleware.js";
 import { authorize } from "../middleware/authorize.middleware.js";
 import { validate } from "../middleware/validation.middleware.js";
 import { Role } from "../generated/prisma/client.js";
-import { createProductSchema, updateProductSchema } from "../validators/product.validator.js";
+import { createProductSchema, productQuerySchema, updateProductSchema } from "../validators/product.validator.js";
 
 const router = Router();
 
@@ -18,6 +18,7 @@ router.post(
 
 router.get(
     "/",
+    validate(productQuerySchema, "query"),
     productController.getAll
 );
 

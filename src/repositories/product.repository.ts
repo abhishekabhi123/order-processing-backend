@@ -11,15 +11,17 @@ export const productRepository = {
         });
     },
 
-    async findAll() {
+    async findAll({ skip, take }: { skip: number; take: number } ) {
         return prisma.product.findMany({
             where: { isActive: true },
             include: {
                 category: true,
             },
             orderBy: {
-                createdAt: "desc",
+                createdAt: "desc", 
             },
+            skip,
+            take
         });
     },
 

@@ -4,7 +4,7 @@ import { categoryRepository } from "../repositories/category.repository.js";
 import { toProductResponse } from "../mappers/product.mapper.js";
 import { ApiError } from "../utils/ApiError.js";
 import { HTTP_STATUS } from "../constants/httpCodes.js";
-import type { CreateProductInput, UpdateProductInput } from "../types/product.types.js";
+import type { CreateProductInput, ProductQuery, UpdateProductInput } from "../types/product.types.js";
 
 
 export const productService = {
@@ -37,8 +37,12 @@ export const productService = {
         return toProductResponse(product);
     },
 
-    getAll: async () => {
-        const products = await productRepository.findAll()
+    getAll: async (query : ProductQuery) => {
+        const {page, limit } = query;
+        let skip =  (page - 1) * limit;
+        const products = await productRepository.findAll({
+            skip, take : limit,
+        })
         return products.map(toProductResponse);
 
     },
