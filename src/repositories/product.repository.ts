@@ -20,8 +20,8 @@ export const productRepository = {
             orderBy: {
                 createdAt: "desc", 
             },
-            skip,
-            take
+            skip : skip,
+            take : take
         });
     },
 

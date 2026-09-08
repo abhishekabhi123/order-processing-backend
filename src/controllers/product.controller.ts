@@ -29,7 +29,7 @@ export const productController = {
         next: NextFunction
     ) => {
         try {
-            const products = await productService.getAll(req.query as unknown as ProductQuery);
+            const products = await productService.getAll((req as any).validated as ProductQuery);
 
             return sendSuccess(
                 res,

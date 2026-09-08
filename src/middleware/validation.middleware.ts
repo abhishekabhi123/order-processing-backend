@@ -12,7 +12,7 @@ export const validate = (schema: ZodType, target : validationType= "body") => (r
         return next(new ApiError(HTTP_STATUS.BAD_REQUEST, result.error.issues.map(i => i.message).join(", ")));
     }
 
-    req[target] = result.data;
+    (req as any).validated = result.data;
     next();
 
 }
