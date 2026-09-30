@@ -8,7 +8,9 @@
     "dev": "npx tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test:db": "node scripts/prepare-test-db.mjs",
+    "test": "npm run test:db && vitest run",
+    "test:watch": "npm run test:db && vitest"
   },
   "keywords": [],
   "author": "",
@@ -37,7 +39,10 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.1.2",
     "@types/pg": "^8.20.4",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.3.0",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
   }
 }
