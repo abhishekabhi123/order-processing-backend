@@ -5,6 +5,7 @@ import { toProductResponse } from "../mappers/product.mapper.js";
 import { ApiError } from "../utils/ApiError.js";
 import { HTTP_STATUS } from "../constants/httpCodes.js";
 import type { CreateProductInput, ProductQuery, UpdateProductInput } from "../types/product.types.js";
+import { productCache } from "./productCache.service.js";
 
 
 export const productService = {
@@ -34,26 +35,42 @@ export const productService = {
             },
         });
 
-        return toProductResponse(product);
+        const response = toProductResponse(product);
+        await productCache.invalidateProduct();
+        return response;
     },
 
     getAll: async (query : ProductQuery) => {
         const {page, limit } = query;
         let skip =  (page - 1) * limit;
+        const cachedProducts = await productCache.getProducts<ReturnType<typeof toProductResponse>[]>(query);
+        if (cachedProducts) {
+            return cachedProducts;
+        }
+
         const products = await productRepository.findAll({
             skip, take : limit,
         })
-        return products.map(toProductResponse);
+        const response = products.map(toProductResponse);
+        await productCache.setProducts(query, response);
+        return response;
 
     },
 
 
     getById: async (id: string) => {
+        const cachedProduct = await productCache.getProduct<ReturnType<typeof toProductResponse>>(id);
+        if (cachedProduct) {
+            return cachedProduct;
+        }
+
         const product = await productRepository.findById(id);
         if (!product) {
             throw new ApiError(HTTP_STATUS.NOT_FOUND, "Product not found");
         }
-        return toProductResponse(product);
+        const response = toProductResponse(product);
+        await productCache.setProduct(id, response);
+        return response;
     },
     update: async (id: string, data: UpdateProductInput) => {
         const existingProduct = await productRepository.findById(id);
@@ -129,7 +146,9 @@ export const productService = {
             updateData
         );
 
-        return toProductResponse(product);
+        const response = toProductResponse(product);
+        await productCache.invalidateProduct(id);
+        return response;
     },
     deactivate: async (id: string) => {
         const product = await productRepository.findById(id);
@@ -144,6 +163,8 @@ export const productService = {
         const deactivatedProduct =
             await productRepository.deactivate(id);
 
-        return toProductResponse(deactivatedProduct);
+        const response = toProductResponse(deactivatedProduct);
+        await productCache.invalidateProduct(id);
+        return response;
     },
 }

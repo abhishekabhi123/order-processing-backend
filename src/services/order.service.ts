@@ -6,6 +6,7 @@ import { toOrderResponse } from "../mappers/order.mapper.js";
 import type { CreateOrderInput, OrderQuery } from "../types/order.types.js";
 import prisma from "../config/database.js";
 import { withSerializationRetry } from "../utils/transactionRetry.js";
+import { productCache } from "./productCache.service.js";
 
 const validTransitions: Record<OrderStatus, OrderStatus[]> = {
     PENDING: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
@@ -60,6 +61,7 @@ export const orderService = {
             });
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }));
 
+        await Promise.all(data.items.map((item) => productCache.invalidateProduct(item.productId)));
         return toOrderResponse(order);
     },
 
@@ -108,6 +110,9 @@ export const orderService = {
             return orderRepository.updateStatusInTransaction(tx, id, status);
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }));
 
+        if (status === OrderStatus.CANCELLED) {
+            await Promise.all(updatedOrder.items.map((item) => productCache.invalidateProduct(item.productId)));
+        }
         return toOrderResponse(updatedOrder);
     },
 };

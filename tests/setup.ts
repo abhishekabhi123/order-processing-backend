@@ -12,6 +12,7 @@ if (!testDatabaseUrl) {
 process.env.DATABASE_URL = testDatabaseUrl;
 process.env.JWT_SECRET = "orderflow-test-access-secret";
 process.env.JWT_REFRESH_SECRET = "orderflow-test-refresh-secret";
+process.env.REDIS_CACHE_TTL_SECONDS = "45";
 process.env.NODE_ENV = "test";
 
 const { default: prisma } = await import("../src/config/database.js");

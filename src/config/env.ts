@@ -11,6 +11,7 @@ const env = {
     JWT_ACCESS_EXPIRES_IN: process.env.JWT_ACCESS_EXPIRES_IN || "15m",
     JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
     REDIS_URL: process.env.REDIS_URL,
+    REDIS_CACHE_TTL_SECONDS: process.env.REDIS_CACHE_TTL_SECONDS || "60",
 };
 
 export default env;
