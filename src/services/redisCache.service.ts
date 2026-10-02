@@ -29,6 +29,33 @@ export const redisCache = {
         }
     },
 
+    async setIfAbsent(key: string, value: string): Promise<void> {
+        if (!redisClient?.isOpen) {
+            return;
+        }
+
+        try {
+            // NX + no EX: never overwrite an existing version and never attach a TTL.
+            await redisClient.set(key, value, { NX: true });
+        } catch {
+            // Cache writes are best effort; PostgreSQL remains the source of truth.
+        }
+    },
+
+    async persist(key: string): Promise<void> {
+        if (!redisClient?.isOpen) {
+            return;
+        }
+
+        try {
+            // Strip any TTL so collection-version keys can never expire and
+            // resurrect stale collection entries under a reset version.
+            await redisClient.persist(key);
+        } catch {
+            // Cache invalidation failures must not fail product writes.
+        }
+    },
+
     async delete(key: string): Promise<void> {
         if (!redisClient?.isOpen) {
             return;

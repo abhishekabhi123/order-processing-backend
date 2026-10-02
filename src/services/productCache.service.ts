@@ -36,8 +36,12 @@ const getCollectionVersion = async (): Promise<string> => {
             return version;
         }
 
-        await redisCache.set(productCacheKeys.version(), DEFAULT_VERSION);
-        return DEFAULT_VERSION;
+        // The version key must never expire: if it expired and was recreated
+        // as DEFAULT_VERSION, stale collection entries written under the old
+        // version could become reachable again. setIfAbsent uses NX with no EX
+        // so it never overwrites a live version and never attaches a TTL.
+        await redisCache.setIfAbsent(productCacheKeys.version(), DEFAULT_VERSION);
+        return (await redisCache.get(productCacheKeys.version())) ?? DEFAULT_VERSION;
     } catch {
         return DEFAULT_VERSION;
     }
@@ -88,7 +92,13 @@ export const productCache = {
 
     async invalidateProduct(id?: string): Promise<void> {
         try {
-            const operations = [redisCache.increment(productCacheKeys.version())];
+            const operations = [
+                redisCache.increment(productCacheKeys.version()),
+                // INCR preserves any existing TTL, so strip it: the version
+                // key must never expire, or stale collection entries could
+                // become reachable again after a reset to DEFAULT_VERSION.
+                redisCache.persist(productCacheKeys.version()),
+            ];
             if (id) {
                 operations.push(redisCache.delete(productCacheKeys.product(id)));
             }
