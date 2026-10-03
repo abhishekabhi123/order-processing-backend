@@ -18,6 +18,7 @@ process.env.NODE_ENV = "test";
 const { default: prisma } = await import("../src/config/database.js");
 
 beforeEach(async () => {
+    await prisma.outboxEvent.deleteMany();
     await prisma.orderItem.deleteMany();
     await prisma.order.deleteMany();
     await prisma.product.deleteMany();

@@ -26,6 +26,13 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum OutboxStatus {
+  PENDING
+  CLAIMED
+  SENT
+  FAILED
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String
@@ -101,4 +108,25 @@ model OrderItem {
   @@index([orderId])
   @@index([productId])
   @@map("order_items")
+}
+
+model OutboxEvent {
+  eventId      String       @id @default(uuid())
+  eventType    String
+  eventVersion Int          @default(1)
+  aggregateType String      @default("order")
+  aggregateId  String
+  payload      Json
+  metadata     Json?
+  status       OutboxStatus @default(PENDING)
+  attempts     Int          @default(0)
+  nextAttemptAt DateTime    @default(now())
+  claimedAt    DateTime?
+  claimedBy    String?
+  createdAt    DateTime     @default(now())
+  sentAt       DateTime?
+
+  @@index([status, nextAttemptAt, createdAt])
+  @@index([aggregateId, createdAt])
+  @@map("outbox_events")
 }

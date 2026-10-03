@@ -1,5 +1,11 @@
 import { Prisma, Role, OrderStatus } from "../generated/prisma/client.js";
 import { orderRepository } from "../repositories/order.repository.js";
+import { outboxRepository } from "../repositories/outbox.repository.js";
+import {
+    buildOrderCancelledEvent,
+    buildOrderCreatedEvent,
+    buildOrderStatusChangedEvent,
+} from "../events/orderEvents.js";
 import { ApiError } from "../utils/ApiError.js";
 import { HTTP_STATUS } from "../constants/httpCodes.js";
 import { toOrderResponse } from "../mappers/order.mapper.js";
@@ -43,7 +49,7 @@ export const orderService = {
                 total = total.plus(product.price.mul(item.quantity));
             }
 
-            return orderRepository.create(tx, {
+            const order = await orderRepository.create(tx, {
                 user: { connect: { id: userId } },
                 total,
                 items: {
@@ -59,6 +65,17 @@ export const orderService = {
                     }),
                 },
             });
+
+            // Outbox insert is part of the same serializable transaction:
+            // it commits if and only if the order commits, and rolls back
+            // with it (including on exhausted P2034 retries). The broker
+            // is never touched here, so broker outages cannot fail the API.
+            await outboxRepository.createInTransaction(tx, {
+                eventId: crypto.randomUUID(),
+                occurredAt: new Date().toISOString(),
+                ...buildOrderCreatedEvent(order, userId),
+            });
+            return order;
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }));
 
         await Promise.all(data.items.map((item) => productCache.invalidateProduct(item.productId)));
@@ -107,7 +124,16 @@ export const orderService = {
                 }
             }
 
-            return orderRepository.updateStatusInTransaction(tx, id, status);
+            const fromStatus = order.status;
+            const updated = await orderRepository.updateStatusInTransaction(tx, id, status);
+            await outboxRepository.createInTransaction(tx, {
+                eventId: crypto.randomUUID(),
+                occurredAt: new Date().toISOString(),
+                ...(status === OrderStatus.CANCELLED
+                    ? buildOrderCancelledEvent(updated, fromStatus)
+                    : buildOrderStatusChangedEvent(updated, fromStatus)),
+            });
+            return updated;
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }));
 
         if (status === OrderStatus.CANCELLED) {
